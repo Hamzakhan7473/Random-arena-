@@ -1,0 +1,5 @@
+* text=auto eol=lf
+data/forecasts/** text eol=lf
+*.parquet binary
+data/manifest/hashes.log text eol=lf
+data/scores/leaderboard.json text eol=lf

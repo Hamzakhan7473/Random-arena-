@@ -1,0 +1,86 @@
+name: Publish forecasts
+
+on:
+  schedule:
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: arena-forecast
+  cancel-in-progress: false
+
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache Hugging Face weights
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.cache/huggingface
+          key: ${{ runner.os }}-hf-${{ hashFiles('engine/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-hf-
+
+      - name: Install engine
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install --upgrade-strategy only-if-needed -e "./engine[dev,foundation]"
+
+      - name: Ingest and forecast
+        id: run
+        env:
+          HF_HOME: ${{ github.workspace }}/.cache/huggingface
+          HUGGINGFACE_HUB_CACHE: ${{ github.workspace }}/.cache/huggingface/hub
+        run: |
+          arena ingest
+          set +e
+          arena forecast | tee /tmp/forecast.out
+          status=${PIPESTATUS[0]}
+          set -e
+          issue=$(sed -n 's/^ISSUE_TIME=//p' /tmp/forecast.out | tail -n1)
+          echo "issue_time=${issue}" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Commit and push to main
+        run: |
+          issue="${{ steps.run.outputs.issue_time }}"
+          if [ -z "$issue" ]; then
+            echo "forecast step did not print ISSUE_TIME" >&2
+            exit 1
+          fi
+          git_commit() {
+            git -c user.name="arena-bot" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "$1"
+          }
+          changed=0
+          git add -- data/actuals
+          if ! git diff --cached --quiet; then
+            git_commit "actuals before ${issue}"
+            changed=1
+          fi
+          git add -- data/forecasts data/manifest/hashes.log
+          if ! git diff --cached --quiet; then
+            git_commit "forecasts ${issue}"
+            python scripts/verify.py
+            changed=1
+          else
+            echo "No new forecast files."
+          fi
+          if [ "$changed" -eq 1 ]; then
+            git push origin HEAD:main
+          fi

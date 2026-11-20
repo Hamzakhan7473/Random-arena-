@@ -1,0 +1,63 @@
+name: Ingest actuals
+
+on:
+  schedule:
+    # A few minutes after the hour, once the candle that ended at HH:00 is closed.
+    - cron: "2 * * * *"
+  workflow_dispatch:
+    inputs:
+      backfill_hours:
+        description: "Append this many hourly closes ending at the current UTC hour"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: arena-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install engine
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install --upgrade-strategy only-if-needed -e "./engine[dev]"
+      - name: Append closes
+        env:
+          BACKFILL_HOURS: ${{ inputs.backfill_hours }}
+        run: |
+          if [ -n "$BACKFILL_HOURS" ]; then
+            case "$BACKFILL_HOURS" in
+              ''|*[!0-9]*) echo "backfill-hours must be an integer" >&2; exit 1 ;;
+            esac
+            arena ingest --backfill-hours "$BACKFILL_HOURS"
+          else
+            arena ingest
+          fi
+      - name: Commit actuals
+        run: |
+          if ! git diff --quiet -- data/forecasts data/manifest data/scores; then
+            echo "ingest must not modify forecasts, the manifest, or scores" >&2
+            exit 1
+          fi
+          git add -- data/actuals
+          if git diff --cached --quiet; then
+            echo "No new closes."
+            exit 0
+          fi
+          stamp="$(date -u +%Y-%m-%dT%HZ)"
+          git -c user.name="arena-bot" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "actuals: closed hourly candles through ${stamp}"
+          git push

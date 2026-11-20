@@ -1,0 +1,15 @@
+# Python 3.11+. On Linux, install the CPU wheel before this file so pip does
+# not replace it with a CUDA build:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install --upgrade-strategy only-if-needed -r requirements.txt
+pandas>=2.2
+numpy>=1.26
+scipy>=1.13
+arch>=7.2
+requests>=2.32
+pydantic>=2.7
+pyarrow>=15.0
+pytest>=8.2
+torch>=2.2
+# Optional foundation adapters (engine/arena/models/{chronos_bolt,chronos2,timesfm}.py):
+#   pip install "chronos-forecasting>=2.0" "timesfm[torch]>=2.0"

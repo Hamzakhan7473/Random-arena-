@@ -1,0 +1,46 @@
+name: Score
+
+on:
+  schedule:
+    - cron: "30 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: arena-score
+  cancel-in-progress: false
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install engine
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install --upgrade-strategy only-if-needed -e "./engine[dev]"
+      - name: Score sealed forecasts
+        run: arena score
+      - name: Commit daily snapshot
+        run: |
+          if ! git diff --quiet -- data/forecasts data/manifest data/actuals; then
+            echo "score job must not modify forecasts, the manifest, or actuals" >&2
+            exit 1
+          fi
+          git add -- data/scores/leaderboard.json data/scores/history.json
+          if git diff --cached --quiet; then
+            echo "Scores unchanged."
+            exit 0
+          fi
+          git -c user.name="arena-bot" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "score: daily snapshot"
+          git push
