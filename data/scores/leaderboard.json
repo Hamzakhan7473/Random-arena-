@@ -1,14 +1,24 @@
 {
-  "generated_at": null,
-  "as_of": null,
+  "generated_at": "2026-11-21T07:31:00Z",
+  "as_of": "2026-11-21",
+  "live_since": null,
   "metric": "mase_median_vs_nochange",
   "note": "No winner is declared. beats_random_walk is true only when Hansen SPA rejects NoChange for that model at 5%.",
-  "quantiles": [0.1, 0.25, 0.5, 0.75, 0.9],
-  "horizons": ["1h", "4h", "24h"],
+  "quantiles": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    0.9
+  ],
+  "horizons": [
+    "1h",
+    "4h",
+    "24h"
+  ],
   "n_forecasts": 0,
   "n_scored": 0,
   "n_pending": 0,
-  "live_since": null,
   "spa": {},
   "cells": [],
   "rows": [],
@@ -21,8 +31,18 @@
     "generated_at": null,
     "as_of": null,
     "metric": "mase_median_vs_nochange",
-    "quantiles": [0.1, 0.25, 0.5, 0.75, 0.9],
-    "horizons": ["1h", "4h", "24h"],
+    "quantiles": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      0.9
+    ],
+    "horizons": [
+      "1h",
+      "4h",
+      "24h"
+    ],
     "n_forecasts": 0,
     "n_scored": 0,
     "n_pending": 0,
