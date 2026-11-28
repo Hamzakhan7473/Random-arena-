@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-27T08:54:04Z",
-  "as_of": "2026-11-27",
+  "generated_at": "2026-11-28T08:14:41Z",
+  "as_of": "2026-11-28",
   "live_since": null,
   "metric": "mase_median_vs_nochange",
   "note": "No winner is declared. beats_random_walk is true only when Hansen SPA rejects NoChange for that model at 5%.",
